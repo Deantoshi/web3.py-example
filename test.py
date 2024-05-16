@@ -17,10 +17,12 @@ import io
 from io import BytesIO
 
 
-app = Flask(__name__)
+# app = Flask(__name__)
 
 # RPC url for your network
-rpc_url = 'https://arb1.arbitrum.io/rpc'
+# rpc_url = 'https://arb1.arbitrum.io/rpc'
+
+rpc_url = 'https://mainnet.mode.network'
 
 # Create a Web3 instance to connect to the Your blockchain
 web3 = Web3(Web3.HTTPProvider(rpc_url))
@@ -60,6 +62,8 @@ def get_contract_events(contract):
 # # takes in an events object and returns a dataframe with relevent transaction output
 def get_event_data(events):
 
+    df = pd.DataFrame()
+
     for event in events:
         owner = event['args']['owner']
         asset_1 = event['args']['amount0']
@@ -73,7 +77,11 @@ def get_event_data(events):
         tx_timestamp = block_data['timestamp']
         # tx_to = event['args']['to'].lower()
 
-        print(event)
+        df['owner'] = [owner]
+        df['asset_1'] = [asset_1]
+
+    
+    return df
 
 # calls a read function our specified contract
 def read_contract_read_function_data(contract):
@@ -82,7 +90,40 @@ def read_contract_read_function_data(contract):
 
     return fee
 
-contract = get_contract()
-events = get_contract_events(contract)
-get_event_data(events)
-print(read_contract_read_function_data(contract))
+def get_oracle_contract():
+    contract_address = "0xE4F4F36FcBb2D53c0bAB95F5D117489579553CaA"
+    contract_abi = [ { "inputs": [ { "internalType": "address[]", "name": "assets", "type": "address[]" }, { "internalType": "address[]", "name": "sources", "type": "address[]" }, { "internalType": "address", "name": "fallbackOracle", "type": "address" }, { "internalType": "address", "name": "baseCurrency", "type": "address" }, { "internalType": "uint256", "name": "baseCurrencyUnit", "type": "uint256" } ], "stateMutability": "nonpayable", "type": "constructor" }, { "anonymous": False, "inputs": [ { "indexed": True, "internalType": "address", "name": "asset", "type": "address" }, { "indexed": True, "internalType": "address", "name": "source", "type": "address" } ], "name": "AssetSourceUpdated", "type": "event" }, { "anonymous": False, "inputs": [ { "indexed": True, "internalType": "address", "name": "baseCurrency", "type": "address" }, { "indexed": False, "internalType": "uint256", "name": "baseCurrencyUnit", "type": "uint256" } ], "name": "BaseCurrencySet", "type": "event" }, { "anonymous": False, "inputs": [ { "indexed": True, "internalType": "address", "name": "fallbackOracle", "type": "address" } ], "name": "FallbackOracleUpdated", "type": "event" }, { "anonymous": False, "inputs": [ { "indexed": True, "internalType": "address", "name": "previousOwner", "type": "address" }, { "indexed": True, "internalType": "address", "name": "newOwner", "type": "address" } ], "name": "OwnershipTransferred", "type": "event" }, { "inputs": [], "name": "BASE_CURRENCY", "outputs": [ { "internalType": "address", "name": "", "type": "address" } ], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "BASE_CURRENCY_UNIT", "outputs": [ { "internalType": "uint256", "name": "", "type": "uint256" } ], "stateMutability": "view", "type": "function" }, { "inputs": [ { "internalType": "address", "name": "asset", "type": "address" } ], "name": "getAssetPrice", "outputs": [ { "internalType": "uint256", "name": "", "type": "uint256" } ], "stateMutability": "view", "type": "function" }, { "inputs": [ { "internalType": "address[]", "name": "assets", "type": "address[]" } ], "name": "getAssetsPrices", "outputs": [ { "internalType": "uint256[]", "name": "", "type": "uint256[]" } ], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "getFallbackOracle", "outputs": [ { "internalType": "address", "name": "", "type": "address" } ], "stateMutability": "view", "type": "function" }, { "inputs": [ { "internalType": "address", "name": "asset", "type": "address" } ], "name": "getSourceOfAsset", "outputs": [ { "internalType": "address", "name": "", "type": "address" } ], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "owner", "outputs": [ { "internalType": "address", "name": "", "type": "address" } ], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "renounceOwnership", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [ { "internalType": "address[]", "name": "assets", "type": "address[]" }, { "internalType": "address[]", "name": "sources", "type": "address[]" } ], "name": "setAssetSources", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [ { "internalType": "address", "name": "fallbackOracle", "type": "address" } ], "name": "setFallbackOracle", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [ { "internalType": "address", "name": "newOwner", "type": "address" } ], "name": "transferOwnership", "outputs": [], "stateMutability": "nonpayable", "type": "function" } ]
+    
+    contract = web3.eth.contract(address=contract_address, abi=contract_abi)
+
+    return contract
+
+def read_oracle_price(contract):
+
+    weth_address = '0x4200000000000000000000000000000000000006'
+
+    address_input_list = [weth_address]
+
+    price = contract.functions.getAssetsPrices(address_input_list).call()
+
+    return price
+
+
+
+oracle_contract = get_oracle_contract()
+
+price = read_oracle_price(oracle_contract)
+
+print(price)
+
+# contract = get_contract()
+
+# fee = read_contract_read_function_data(contract)
+
+# events = get_contract_events(contract)
+
+# df = get_event_data(events)
+# print(df)
+
+# get_event_data(events)
+# print(read_contract_read_function_data(contract))
